@@ -1,0 +1,103 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+author: "Nikhil Prakash"
+output: html_document
+---
+## Overview
+This assignment makes use of data from a personal activity monitoring device.
+This device collects data at 5 minute intervals throughout the day. The data 
+consists of two months of data from an anonymous individual collected during 
+the months of October and November, 2012 and include the number of steps taken 
+in 5 minute intervals each day.
+
+```{r results='hide'}
+library(dplyr)
+library(ggplot2)
+```
+## Loading and preprocessing the data
+```{r}
+actData <- read.csv("activity.csv", header = TRUE)
+head(actData)
+```
+
+## What is mean total number of steps taken per day?
+```{r}
+steps <- aggregate(actData$steps, by = list(Date = actData$date), FUN = sum)
+names(steps)[names(steps) == "x"] <- "Total"
+temp <- as.Date(steps$Date, "%Y-%m-%d")
+steps$Date <- format(temp, format = "%m-%d")
+head(steps)
+```
+```{r}
+ggplot(data = na.omit(steps), aes(Total)) + geom_histogram(binwidth = 1500, colour = "white") +
+    xlab("Total Number of Steps Taken Each Day") + ylab("Count") +
+    ggtitle("Histogram of the Total Number of Steps Taken Each Day")
+```
+```{r}
+mean(na.omit(steps$Total))
+median(na.omit(steps$Total))
+```
+
+## What is the average daily activity pattern?
+```{r}
+pattern <- aggregate(steps ~ interval, data = actData, FUN =mean)
+ggplot(data = pattern, aes(x = interval, y = steps)) + geom_line() +
+    xlab("Time Intervals (5 Minutes interval)") + ylab("Total Number of Steps") +
+    ggtitle("Average Number of Steps Taken in 5-Minute Interval")
+```
+
+```{r}
+head(pattern)
+```
+```{r}
+pattern[which(pattern$steps == max(pattern$steps)),]
+```
+
+## Imputing missing values
+```{r}
+sapply(X = actData, FUN = function(x) sum(is.na(x)))
+```
+## Replace with Mean
+```{r}
+replacewithmean <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+meandata <- actData%>% group_by(interval) %>% mutate(steps= replacewithmean(steps))
+head(meandata)
+```
+```{r}
+newdata <- as.data.frame(meandata)
+```
+```{r}
+head(newdata)
+```
+```{r}
+summary(newdata)
+```
+```{r}
+stepsByDay <- tapply(meandata$steps, meandata$date, sum)
+qplot(stepsByDay, xlab='Total steps per day', ylab='Frequency', binwidth=500)
+```
+## Compare Mean and Median 
+```{r}
+mean(na.omit(steps$Total))
+mean(na.omit(steps$Total))
+median(na.omit(steps$Total))
+median(na.omit(steps$Total))
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+meandata$date <- as.Date(meandata$date)
+meandata$weekday <- weekdays(meandata$date)
+meandata$weekend <- ifelse(meandata$weekday=="Saturday" | meandata$weekday=="Sunday", "Weekend", "Weekday" )
+meandataweekendweekday <- aggregate(meandata$steps , by= list(meandata$weekend, meandata$interval), na.omit(mean))
+names(meandataweekendweekday) <- c("weekend", "interval", "steps")
+ggplot(meandataweekendweekday, aes(x=interval, y=steps, color=weekend)) + geom_line()+
+facet_grid(weekend ~.) + xlab("Interval") + ylab("Mean of Steps") +
+    ggtitle("Comparison of Average Number of Steps in Each Interval")
+```
+
+## Conclusion:
+ From the two plots it seems that the test object is more active earlier in the day
+ during weekdays compared to weekends, but more active throughout the weekends compared
+ with weekdays.
