@@ -1,7 +1,6 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
 author: "Nikhil Prakash"
-output: html_document
 ---
 ## Overview
 This assignment makes use of data from a personal activity monitoring device.
